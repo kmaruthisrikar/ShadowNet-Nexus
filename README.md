@@ -1,10 +1,15 @@
-# 🛡️ ShadowNet Nexus v4.0 - Complete Technical Deep Dive
+# 🛡️ ShadowNet Nexus v4.0
 
-**Project Classification:** Enterprise-Grade Digital Forensics & Incident Response Platform  
+[![DOI](https://zenodo.org/badge/1152719327.svg)](https://doi.org/10.5281/zenodo.18524153)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Python](https://img.shields.io/badge/Python-3.x-blue.svg)
+
+
+
+
+**Project Classification:** Digital Forensics & Incident Response Platform  
 **Architecture:** Hybrid Event-Driven + AI-Powered Detection System  
-**Target Environment:** Windows Enterprise (with Linux/Mac support)  
-**Scale:** Production-Ready, High-Volume Attack Detection  
-**Forensic Integrity:** Court-Admissible Evidence Collection
+**Target Environment:** Windows-main focused (with Linux/Mac support less support)    
 
 ---
 
@@ -57,7 +62,7 @@ ShadowNet Nexus v4.0 is an advanced cyber forensics platform designed to detect,
 ┌─────────────────────────────────────────────────────────────────┐
 │                     WINDOWS KERNEL LAYER                        │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │   Win32_Process Creation Events (WMI Subscription)       │   │
+│  │   Win32_Process Creation Events (WMI)       │   │
 │  └────────────────────┬─────────────────────────────────────┘   │
 └────────────────────────┼─────────────────────────────────────────┘
                          │ Event Stream (0ms latency)
@@ -1397,33 +1402,8 @@ def stress_test_detection_pipeline():
 - **Impact**: Non-admin users get limited evidence (metadata only)
 - **Mitigation**: Metadata fallback implemented, user education
 
-### Future Roadmap (v5.0)
 
-**Q1 2026: Kernel-Level Instrumentation**
-- Develop KMDF (Kernel-Mode Driver Framework) driver
-- ETW (Event Tracing for Windows) integration
-- Detect kernel-mode attacks (rootkits, direct syscalls)
-
-**Q2 2026: Machine Learning Enhancements**
-- Fine-tune Gemini on ransomware-specific dataset
-- Implement federated learning for user baselines
-- Reduce API dependency with local ML inference
-
-**Q3 2026: Enterprise Features**
-- Centralized management console (web UI)
-- Multi-tenant architecture for MSPs
-- Active Directory integration (GPO deployment)
-- Compliance reporting (PCI DSS, HIPAA, SOC 2)
-
-**Q4 2026: Advanced Response Capabilities**
-- Automated containment (isolate compromised host)
-- Active defense (block anti-forensics commands)
-- Threat hunting queries (pre-defined IOCs)
-- Integration with EDR platforms (CrowdStrike, SentinelOne)
-
-### Known Issues
-
-**GitHub Issues**:
+### Known Issues*:
 - `#1` - WMI timeout on heavily loaded systems (workaround: increase timeout_ms)
 - `#2` - False positive on legitimate `vssadmin` usage (add user to allowlist)
 - `#3` - High memory usage when evidence vault >100GB (implement auto-rotation)
@@ -1496,24 +1476,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
----
-
-## 📞 Contact & Support
-
-### Project Maintainer
-- **GitHub**: [@yourusername](https://github.com/yourusername)
-- **Email**: security@shadownet-nexus.com
-
-### Community
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/shadownet-nexus/discussions)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/shadownet-nexus/issues)
-- **Slack**: [Join ShadowNet Community](https://shadownet-community.slack.com)
-
-### Commercial Support
-For enterprise deployments, custom integrations, or consulting services, contact: enterprise@shadownet-nexus.com
-
----
 
 **ShadowNet Nexus v4.0** - *Defending the Defenders*  
 © 2026 ShadowNet Nexus Project. All rights reserved.
