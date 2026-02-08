@@ -58,7 +58,8 @@ keywords = config['shadownet']['monitoring']['suspicious_keywords']
 print("\n[INIT] Initializing v4.0 Defense Layers...")
 
 # 1. Evidence Engine
-evidence_collector = ProactiveEvidenceCollector(evidence_vault_path="./evidence", enabled=True)
+capture_net = config['shadownet']['monitoring'].get('enable_network_monitoring', True)
+evidence_collector = ProactiveEvidenceCollector(evidence_vault_path="./evidence", enabled=True, capture_network=capture_net)
 print(f"   [OK] Evidence Vault: {evidence_collector.os_type.upper()} Mode")
 
 # 2. AI Command Engine
@@ -257,25 +258,39 @@ def on_behavioral_alert(alert_data: dict):
 
 # --- Start System ---
 if __name__ == "__main__":
-    try:
+    # --- Start Monitoring Based on Config ---
+    monitoring_config = config['shadownet']['monitoring']
+    
+    # 1. Process Monitor
+    if monitoring_config.get('enable_process_monitoring', True):
         from core.process_monitor import ProcessMonitor
         monitor = ProcessMonitor(callback=on_suspicious_command, suspicious_keywords=keywords)
         monitor.start_monitoring()
-        
-        # Start Behavioral Guard
+        print("   [OK] Process Monitor: ACTIVE")
+    else:
+        print("   [--] Process Monitor: DISABLED (Config)")
+
+    # 2. Behavioral Guard (Keylogger/Bot Detection)
+    # Using 'enable_file_monitoring' as proxy or we can add a new key. 
+    # Let's assume enable_file_monitoring covers this for now or add a specific check.
+    if monitoring_config.get('enable_file_monitoring', True): 
         behavior_guard = BehavioralMonitor(analyzer=behavior_analyzer, callback=on_behavioral_alert)
         behavior_guard.start_monitoring()
+        print("   [OK] Behavioral Guard: ACTIVE")
+    else:
+        print("   [--] Behavioral Guard: DISABLED (Config)")
         
-        print("\n" + "="*80)
-        print("✅ SHADOWNET v4.0 IS NOW ACTIVE (Cross-Platform Mode)!")
-        print("="*80)
-        print(f"Platform: {evidence_collector.os_type.upper()}")
-        print(f"Monitor: Hybrid (Platform Specific)")
-        print("Async Queue: ENABLED")
-        print("Aggressive Keywords: ENABLED")
-        print("\n🔍 Watching... (Ctrl+C to Shutdown)\n")
-        print("="*80)
-        
+    print("\n" + "="*80)
+    print("✅ SHADOWNET v4.1 IS NOW ACTIVE (Cross-Platform Mode)!")
+    print("="*80)
+    print(f"Platform: {evidence_collector.os_type.upper()}")
+    print(f"Monitor: Hybrid (Platform Specific)")
+    print("Async Queue: ENABLED")
+    print("Aggressive Keywords: ENABLED")
+    print("\n🔍 Watching... (Ctrl+C to Shutdown)\n")
+    print("="*80)
+    
+    try:
         while True:
             time.sleep(1)
             if int(time.time()) % 60 == 0:

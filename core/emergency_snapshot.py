@@ -21,8 +21,9 @@ class EmergencySnapshotEngine:
     Automatically adapts to Windows, Linux, or Mac
     """
     
-    def __init__(self, evidence_vault_path: str = "./evidence"):
+    def __init__(self, evidence_vault_path: str = "./evidence", capture_network: bool = True):
         self.vault_path = Path(evidence_vault_path)
+        self.capture_network = capture_network
         self.os_type = platform.system().lower()
         self.snapshots_dir = self.vault_path / "emergency_snapshots"
         self.snapshots_dir.mkdir(parents=True, exist_ok=True)
@@ -77,11 +78,12 @@ class EmergencySnapshotEngine:
             args=(snapshot_dir, process_info)
         ))
         
-        # Always capture network state
-        threads.append(threading.Thread(
-            target=self._snapshot_network_state,
-            args=(snapshot_dir,)
-        ))
+        # Capture network state if enabled
+        if self.capture_network:
+            threads.append(threading.Thread(
+                target=self._snapshot_network_state,
+                args=(snapshot_dir,)
+            ))
         
         # Start all threads (parallel execution)
         for thread in threads:
