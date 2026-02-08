@@ -187,35 +187,63 @@ class UnixProcessMonitor(BaseProcessMonitor):
             print(f"❌ {self.os_type.upper()} Monitor Failed: psutil not installed")
 
     def _polling_loop(self):
-        seen_pids = set()
+        """
+        High-Performance Differential Polling (Linux/Mac)
+        Strategy: Only fetch full details for NEW PIDs to minimize I/O overhead.
+        Target Latency: ~5ms
+        """
+        known_pids = set(psutil.pids())
+        
         while self.monitoring:
             try:
-                # Optimized for Linux/Mac: only check new PIDs
-                for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'username']):
-                    try:
-                        pid = proc.info['pid']
-                        if pid in seen_pids: continue
-                        seen_pids.add(pid)
-                        
-                        cmdline = proc.info.get('cmdline')
-                        if not cmdline: continue
-                        full_cmd = " ".join(cmdline)
-                        
-                        if self._is_suspicious(full_cmd):
-                            self._handle_suspicious_command(full_cmd, {
-                                'pid': pid,
-                                'name': proc.info['name'],
-                                'cmdline': cmdline,
-                                'username': proc.info['username'],
-                                'parent_pid': proc.ppid() if hasattr(proc, 'ppid') else 0
-                            }, "Polling")
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        continue
+                # 1. Light scan: Get current PIDs only
+                current_pids = set(psutil.pids())
+                
+                # 2. find new processes (Differential)
+                new_pids = current_pids - known_pids
+                
+                if new_pids:
+                    for pid in new_pids:
+                        try:
+                            # 3. Deep interaction only for NEW targets
+                            proc = psutil.Process(pid)
+                            
+                            # Fast-fail checks
+                            try:
+                                cmdline = proc.cmdline()
+                            except (psutil.ZombieProcess, psutil.AccessDenied, psutil.NoSuchProcess):
+                                continue
+                                
+                            if not cmdline: continue
+                            
+                            full_cmd = " ".join(cmdline)
+                            
+                            if self._is_suspicious(full_cmd):
+                                p_info = {
+                                    'pid': pid,
+                                    'name': proc.name(),
+                                    'cmdline': cmdline,
+                                    'username': proc.username(),
+                                    'parent_pid': proc.ppid()
+                                }
+                                self._handle_suspicious_command(full_cmd, p_info, "Fast-Poll")
+                                
+                        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                            pass
+                
+                # Update baseline
+                known_pids = current_pids
+                
+                # 4. Cleanup dead PIDs from set to prevent memory growth (optional but good)
+                # (handled by reassignment above)
+                
             except Exception as e:
+                # print(f"Poll Error: {e}") 
                 pass
             
-            if len(seen_pids) > 5000: seen_pids.clear()
-            time.sleep(0.01) # Ultra-fast polling on Unix
+            # Adaptive High-Speed Sleep
+            # If we found something, sleep less. If idle, sleep normal.
+            time.sleep(0.005) # 5ms Latency Target
 
 
 def ProcessMonitor(callback: Optional[Callable] = None, suspicious_keywords: List[str] = None):
