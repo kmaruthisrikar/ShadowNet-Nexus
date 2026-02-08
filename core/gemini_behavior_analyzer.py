@@ -56,6 +56,7 @@ TASK: Determine if this is human or automated input.
 Respond in JSON format:
 {{
   "input_type": "human|bot|uncertain",
+  "is_human": boolean,
   "confidence": 0.0-1.0,
   "evidence": ["list of specific patterns that support conclusion"],
   "statistical_summary": {{

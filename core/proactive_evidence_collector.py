@@ -144,6 +144,7 @@ class ProactiveEvidenceCollector:
             Threat info if capture needed, None otherwise
         """
         if not self.enabled:
+            print(f"   ⚠️  Proactive capture DISABLED")
             return None
         
         # Decode command if obfuscated (Base64, etc.)
@@ -153,9 +154,14 @@ class ProactiveEvidenceCollector:
         # Check both original and decoded command
         commands_to_check = [command.lower(), decoded_command.lower()]
         
+        print(f"   🔍 Checking if proactive capture needed...")
+        print(f"   Command: {command[:100]}...")
+        
         for cmd_to_check in commands_to_check:
             for pattern, threat_info in self.threat_patterns.items():
                 if pattern.lower() in cmd_to_check:
+                    print(f"   ✅ MATCH! Pattern: '{pattern}' found in command")
+                    
                     # If obfuscation was detected, increase severity
                     if obfuscation_techniques and threat_info['severity'] != 'CRITICAL':
                         threat_info = threat_info.copy()
@@ -165,6 +171,7 @@ class ProactiveEvidenceCollector:
                         threat_info['severity'] = severity_upgrade.get(threat_info['severity'], 'CRITICAL')
                     return threat_info
         
+        print(f"   ⏸️  No proactive capture pattern matched")
         return None
     
     def capture_threat_context(self, threat_type: str, details: Dict[str, Any]) -> Optional[str]:
