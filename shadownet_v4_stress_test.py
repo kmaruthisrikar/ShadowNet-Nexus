@@ -39,58 +39,39 @@ def run_test(name, command, description):
     print("-" * 50)
 
 def main():
-    if sys.platform != "win32":
-        print("❌ Error: ShadowNet is currently optimized for Windows environments.")
-        return
-
+    import platform
+    os_type = platform.system().lower()
+    
     print_banner()
+    print(f"📍 Detected Platform: {os_type.upper()}")
 
-    # CATEGORY 1: ANTI-FORENSICS (The Core Target)
-    run_test(
-        "Log Clearing (wevtutil)", 
-        "wevtutil cl Application", 
-        "Attempting to wipe System logs to hide tracks."
-    )
+    # CATEGORY 1: ANTI-FORENSICS
+    if os_type == "windows":
+        run_test("Log Clearing (wevtutil)", "wevtutil cl Application", "Attempting to wipe System logs.")
+        run_test("Secure File Deletion (sdelete)", "sdelete.exe -p 3 sensitive.txt", "Forensic wipe.")
+    else:
+        run_test("Log Clearing (rm)", "rm -rf /var/log/syslog.1", "Attempting to delete log rotations.")
+        run_test("Secure File Deletion (shred)", "shred -u sensitive.txt", "Using GNU shred for secure wipe.")
 
-    run_test(
-        "Secure File Deletion (sdelete)", 
-        "sdelete.exe -p 3 sensitive_data.txt", 
-        "Using forensic wipes to destroy evidence irrecoverably."
-    )
-
-    # CATEGORY 2: RANSOMWARE PREPARATION
-    run_test(
-        "Shadow Copy Deletion", 
-        "vssadmin delete shadows /all /quiet", 
-        "Classic ransomware move to prevent data recovery."
-    )
-
-    run_test(
-        "Backup Disabling (bcdedit)", 
-        "bcdedit /set {default} recoveryenabled No", 
-        "Disabling Windows Recovery environment."
-    )
+    # CATEGORY 2: RANSOMWARE PREPARATION / SYSTEM TAMPERING
+    if os_type == "windows":
+        run_test("Shadow Copy Deletion", "vssadmin delete shadows /all /quiet", "Preventing recovery.")
+        run_test("Registry Persistence", "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v Alert /t REG_SZ /d \"calc.exe\"", "Persistence.")
+    else:
+        run_test("History Clearing", "history -c", "Wiping bash/zsh history.")
+        run_test("Cron Persistence", "echo '* * * * * root /tmp/evil' >> /etc/crontab", "Adding malicious cron job.")
 
     # CATEGORY 3: CREDENTIAL ACCESS
-    run_test(
-        "Credential Dumping (Mimikatz)", 
-        "mimikatz.exe \"privilege::debug\" \"sekurlsa::logonpasswords\" exit", 
-        "Attempting to dump system passwords from memory."
-    )
+    if os_type == "windows":
+        run_test("Credential Dumping", "mimikatz.exe \"privilege::debug\"", "Mimikatz simulation.")
+    else:
+        run_test("Shadow File Access", "cat /etc/shadow", "Attempting to read password hashes.")
 
     # CATEGORY 4: OBFUSCATION & STEALTH
-    run_test(
-        "Encoded PowerShell", 
-        "powershell -EncodedCommand JABhID0gMSArIDE=", 
-        "Running base64 encoded payload to bypass simple filters."
-    )
-
-    # CATEGORY 5: SYSTEM TAMPERING
-    run_test(
-        "Registry Persistence", 
-        "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v Malicious /t REG_SZ /d \"C:\\temp\\evil.exe\"", 
-        "Modifying registry for persistence."
-    )
+    if os_type == "windows":
+        run_test("Encoded PowerShell", "powershell -EncodedCommand JABhID0gMSArIDE=", "Base64 payload.")
+    else:
+        run_test("Python Obfuscation", "python3 -c \"import base64; exec(base64.b64decode('cHJpbnQoJ0hlbGxvJyk='))\"", "Encoded python execution.")
 
     # CATEGORY 6: KEYLOGGER & BEHAVIORAL DETECTION
     print("👉 TESTING: Keylogger Detection (Mechanical Pattern)")

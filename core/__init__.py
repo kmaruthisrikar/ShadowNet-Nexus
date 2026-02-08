@@ -10,7 +10,7 @@ from .proactive_evidence_collector import ProactiveEvidenceCollector
 from .emergency_snapshot import EmergencySnapshotEngine
 from .alert_manager import AlertManager
 from .siem_integration import SIEMIntegration
-from .wmi_process_monitor import WMIProcessMonitor
+from .process_monitor import ProcessMonitor as WMIProcessMonitor, ProcessMonitor
 from .incident_report_generator import IncidentReportGenerator
 
 from .behavioral_validator import test_behavior as BehavioralValidator
@@ -24,6 +24,7 @@ __all__ = [
     'AlertManager',
     'SIEMIntegration',
     'WMIProcessMonitor',
+    'ProcessMonitor',
     'IncidentReportGenerator',
     'BehavioralValidator'
 ]

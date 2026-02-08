@@ -242,13 +242,15 @@ def on_suspicious_command(command: str, process_info: dict):
 # --- Start System ---
 if __name__ == "__main__":
     try:
-        wmi_monitor = WMIProcessMonitor(callback=on_suspicious_command, suspicious_keywords=keywords)
-        wmi_monitor.start_monitoring()
+        from core.process_monitor import ProcessMonitor
+        monitor = ProcessMonitor(callback=on_suspicious_command, suspicious_keywords=keywords)
+        monitor.start_monitoring()
         
         print("\n" + "="*80)
-        print("✅ SHADOWNET v4.0 IS NOW ACTIVE (Aggressive Mode)!")
+        print("✅ SHADOWNET v4.0 IS NOW ACTIVE (Cross-Platform Mode)!")
         print("="*80)
-        print("Monitor: Hybrid (WMI + Fast Polling)")
+        print(f"Platform: {evidence_collector.os_type.upper()}")
+        print(f"Monitor: Hybrid (Platform Specific)")
         print("Async Queue: ENABLED")
         print("Aggressive Keywords: ENABLED")
         print("\n🔍 Watching... (Ctrl+C to Shutdown)\n")
@@ -257,11 +259,11 @@ if __name__ == "__main__":
         while True:
             time.sleep(1)
             if int(time.time()) % 60 == 0:
-                print(f"\n📊 Current Status: {detections} detections, {incident_queue.qsize()} pending reports...")
+                print(f"\n📊 {datetime.now().strftime('%H:%M:%S')} - Status: {detections} detections, {incident_queue.qsize()} pending reports...")
 
     except KeyboardInterrupt:
         print("\n\n⏹️  Initiating Secure Shutdown...")
-        wmi_monitor.stop_monitoring()
+        monitor.stop_monitoring()
         incident_queue.put(None)
         worker_thread.join(timeout=5)
         print("\n👋 ShadowNet v4.0 shutdown complete\n")
