@@ -1079,7 +1079,7 @@ class TestIntegration(unittest.TestCase):
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/yourusername/shadownet-nexus.git
+git clone https://github.com/kmaruthisrikar/shadownet-nexus.git
 cd shadownet-nexus
 
 # 2. Create virtual environment
