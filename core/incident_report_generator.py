@@ -5,6 +5,7 @@ Creates detailed forensic reports from captured evidence
 
 import os
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List
@@ -61,6 +62,19 @@ class IncidentReportGenerator:
             from utils.evidence_vault import EvidenceVault
             vault = EvidenceVault(str(self.evidence_path))
             vault.save_report(incident_id, report_content, report_type="forensic")
+            
+            # NEW: Package and preserve raw evidence snapshot as artifact
+            snapshot_id = incident_data.get('snapshot_id')
+            if snapshot_id:
+                snapshot_dir = self.evidence_path / "emergency_snapshots" / snapshot_id
+                if snapshot_dir.exists():
+                     # Create temporary zip archive
+                     archive_base = incident_dir / "RAW_EVIDENCE_SNAPSHOT"
+                     archive_path = shutil.make_archive(str(archive_base), 'zip', str(snapshot_dir))
+                     
+                     # Preserve in vault as artifact (This populates evidence/artifacts AND chain_of_custody.json)
+                     vault.preserve_file_artifact(incident_id, archive_path, artifact_type="snapshot_archive")
+                     print(f"   📦 Evidence Artifact Preserved: {Path(archive_path).name}")
         except Exception as e:
             print(f"⚠️ Failed to save to central reports vault: {e}")
         

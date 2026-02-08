@@ -258,8 +258,26 @@ class EvidenceVault:
         timestamp = datetime.now()
         report_file = self.vault_path / "reports" / f"{incident_id}_{report_type}_{timestamp.strftime('%Y%m%d-%H%M%S')}.md"
         
+        # Write report first
         with open(report_file, 'w', encoding='utf-8') as f:
             f.write(report_content)
+            
+        if report_type == "forensic":
+            # Calculate hash for CoC
+            with open(report_file, 'rb') as f:
+                file_hash = hashlib.sha256(f.read()).hexdigest()
+            
+            # Record in chain of custody
+            self._add_custody_entry({
+                'evidence_id': f"REP-{timestamp.strftime('%Y%m%d-%H%M%S')}",
+                'incident_id': incident_id,
+                'evidence_type': report_type,
+                'timestamp': timestamp.isoformat(),
+                'file_path': str(report_file),
+                'hash_sha256': file_hash,
+                'collected_by': 'ShadowNet Nexus',
+                'action': 'report_generated'
+            })
         
         return str(report_file)
     
