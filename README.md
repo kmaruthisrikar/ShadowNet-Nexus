@@ -1,4 +1,8 @@
 # 🛡️ ShadowNet Nexus v3.0
+[![DOI](https://zenodo.org/badge/1152719327.svg)](https://doi.org/10.5281/zenodo.18524153)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
+
 
 ## What is This Project? (Honest Explanation)
 
