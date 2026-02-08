@@ -37,7 +37,7 @@ print(f"[OK] API Key loaded: {api_key[:20]}...{api_key[-10:]}\n")
 
 # --- Import All Core Components ---
 print("[MSG] Loading core modules...")
-from core.wmi_process_monitor import WMIProcessMonitor
+from core.process_monitor import ProcessMonitor as WMIProcessMonitor
 from core.proactive_evidence_collector import ProactiveEvidenceCollector
 from core.gemini_command_analyzer import GeminiCommandAnalyzer
 from core.siem_integration import SIEMIntegration, SIEMPlatform
