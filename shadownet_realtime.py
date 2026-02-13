@@ -1,5 +1,5 @@
 """
-SHADOWNET NEXUS - COMPLETE REAL-TIME SYSTEM (v4.0)
+SHADOWNET NEXUS - COMPLETE REAL-TIME SYSTEM (v4.1)
 Integrates all core modules: SIEM, Alerts, Behavior Analysis, and Advanced Reporting.
 OPTIMIZED: Background processing and deduplication for high-volume attacks.
 """
@@ -203,6 +203,11 @@ def on_suspicious_command(command: str, process_info: dict):
         return 
         
     detections += 1
+    
+    # Whitelist Self-Monitoring (Evidence Collection actions)
+    if "evidence\\emergency_snapshots" in command or "epl System" in command:
+        return
+
     # AGGRESSIVE MODE: Every keyword in config is considered critical for logging
     is_critical = len(matched_keywords) > 0 or is_forensic_tool
     
