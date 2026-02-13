@@ -176,7 +176,7 @@ worker_thread.start()
 
 def on_suspicious_command(command: str, process_info: dict):
     """Handle suspicious command with v4.0 Logic and Deduplication Imaging"""
-    global detections, recent_commands
+    global detections, recent_commands, keywords
     
     # Deduplication (Anti-Spam)
     cmd_key = f"{process_info.get('name')}:{command}"
@@ -191,9 +191,6 @@ def on_suspicious_command(command: str, process_info: dict):
         return
     
     recent_commands[cmd_key] = now
-    
-    # 🚨 SECURITY ALERT TRIGGERED
-    print(f"\n[!] SUSPICIOUS EVENT: {proc_name} ({command})")
     
     # Aggressive Forensic Check (Config Driven)
     if isinstance(keywords, str): keywords = [keywords]
