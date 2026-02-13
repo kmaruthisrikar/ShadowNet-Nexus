@@ -116,9 +116,6 @@ class WindowsProcessMonitor(BaseProcessMonitor):
                     new_process = watcher(timeout_ms=1000)
                     if new_process:
                         self.processes_detected += 1
-                        # Show heartbeat to confirm monitor is "hearing" spawns
-                        sys.stdout.write(".") 
-                        sys.stdout.flush()
                         
                         pid = new_process.ProcessId
                         name = new_process.Name
@@ -146,6 +143,8 @@ class WindowsProcessMonitor(BaseProcessMonitor):
                             self._handle_suspicious_command(cmd, p_info, "WMI")
                 except wmi.x_wmi_timed_out:
                     continue
+                except Exception as e:
+                    pass 
         except Exception as e:
             print(f"⚠️ WMI Monitor Error: {e}")
         finally:

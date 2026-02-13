@@ -100,31 +100,21 @@ def log_worker():
             
             command = item['command']
             matched_keywords = item['matched_keywords']
-            ai_res = item['ai_res']
             process_info = item['process_info']
             is_critical = item['is_critical']
+            snapshot_id = item.get('snapshot_id', 'N/A')
             
+            # Deep AI Analysis in background
+            ai_res = ai_analyzer.analyze_command(command, process_info)
+            severity = "CRITICAL" if is_critical or ai_res.get('severity') == 'CRITICAL' else "HIGH"
+
             timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
             incident_id = f"INC-{timestamp}"
             incident_dir = Path("evidence/incidents") / incident_id
             incident_dir.mkdir(parents=True, exist_ok=True)
-            
-            severity = "CRITICAL" if is_critical or ai_res.get('severity') == 'CRITICAL' else "HIGH"
-            
-            # 1. Trigger Evidence Snapshot
-            snapshot_id = "N/A"
-            try:
-                res = evidence_collector.on_threat_detected({
-                    'command': command, 
-                    'category': ai_res.get('category', 'unknown'), 
-                    'severity': severity, 
-                    'process_info': process_info
-                })
-                if res.get('snapshot_taken'):
-                    snapshots += 1
-                    snapshot_id = res.get('snapshot_id')
-            except Exception as e:
-                print(f"   [WARN] Evidence Error: {e}")
+            # Snapshots are now taken in the foreground for speed, but we could take more here if needed
+            if snapshot_id != "N/A":
+                snapshots += 1
 
             # 2. Generate Forensic Markdown Report
             incident_data = {
@@ -189,11 +179,13 @@ def on_suspicious_command(command: str, process_info: dict):
     # Deduplication (Anti-Spam)
     cmd_key = f"{process_info.get('name')}:{command}"
     now = time.time()
+    
+    # Visual Heartbeat for EVERY process detection (WMI or Polling)
+    # This proves the monitor is "hearing" the system
+    sys.stdout.write("·") 
+    sys.stdout.flush()
+
     if cmd_key in recent_commands and (now - recent_commands[cmd_key]) < 5:
-        # Silently keep count but don't re-print to keep terminal clean
-        # However, for manual testing, let's show a tiny indicator
-        sys.stdout.write(".") 
-        sys.stdout.flush()
         detections += 1
         return
     
@@ -202,57 +194,52 @@ def on_suspicious_command(command: str, process_info: dict):
     matched_keywords = [k for k in keywords if k.lower() in command.lower()]
     proc_name = process_info.get('name', '').lower()
     
-    # Forensic Tools (Extended List)
-    forensic_binaries = ['wevtutil', 'vssadmin', 'cipher', 'bcdedit', 'sdelete', 'mimikatz']
-    is_forensic_tool = any(tool in proc_name for tool in forensic_binaries)
+    # Highly Aggressive Forensic Tool Check
+    forensic_binaries = ['wevtutil', 'vssadmin', 'cipher', 'bcdedit', 'sdelete', 'mimikatz', 'reg']
+    is_forensic_tool = any(tool in proc_name for tool in forensic_binaries) or \
+                       any(tool in command.lower() for tool in forensic_binaries)
     
     if not matched_keywords and not is_forensic_tool:
-        # Small visual heartbeat for non-suspicious processes
-        sys.stdout.write(".") 
-        sys.stdout.flush()
         return 
         
-    detections += 1
-    
-    # Whitelist Self-Monitoring (Evidence Collection actions)
-    if "evidence\\emergency_snapshots" in command or "epl System" in command:
+    # Whitelist Self-Monitoring (Only ignore EXACT evidence collection signatures)
+    # This prevents the system from ignoring manual 'wevtutil' commands
+    if "evidence\\emergency_snapshots" in command and "epl " in command:
         return
+
+    detections += 1
 
     # AGGRESSIVE MODE: Every keyword in config is considered critical for logging
     is_critical = len(matched_keywords) > 0 or is_forensic_tool
     
     print(f"\n{'='*80}")
-    print(f"🚨 KERNEL SIGNAL MATCHED: {matched_keywords if matched_keywords else [proc_name]}")
+    print(f"🚨 KERNEL SIGNAL MATCHED (Instant Detection)")
     print(f"{'='*80}")
     print(f"Command: {command}")
     print(f"System: {process_info.get('name')} (PID: {process_info.get('pid')})")
     
-    # AI Analysis (Fast path)
-    print(f"\n[AI] Requesting Deep Analysis...")
+    # 1. Trigger FOREGROUND Evidence Snapshot (Absolute priority)
+    print(f"⚡ TRIGGERING PROACTIVE EVIDENCE CAPTURE...")
+    snapshot_id = "N/A"
     try:
-        ai_res = ai_analyzer.analyze_command(command, process_info)
-        is_threat = ai_res.get('is_anti_forensics', False)
-        
-        if is_threat or is_critical:
-            print(f"[AI] VERDICT: THREAT identified. Pushing to background reporter...")
-            incident_queue.put({
-                'command': command,
-                'matched_keywords': matched_keywords,
-                'ai_res': ai_res,
-                'process_info': process_info,
-                'is_critical': is_critical
-            })
-        else:
-            print(f"[AI] VERDICT: BENIGN activity.")
-            
+        res = evidence_collector.on_threat_detected({
+            'command': command, 
+            'process_info': process_info
+        })
+        if res.get('snapshot_taken'):
+            snapshot_id = res.get('snapshot_id')
     except Exception as e:
-        print(f"[WARN] Analysis delay: {e}")
-        if is_critical:
-             incident_queue.put({
-                'command': command, 'matched_keywords': matched_keywords,
-                'ai_res': {"category": "forced", "explanation": "forced due to critical tool"},
-                'process_info': process_info, 'is_critical': True
-             })
+        print(f"   [WARN] Evidence Lag: {e}")
+
+    # 2. Spawn ASYNC Analysis (Background)
+    print(f"📡 Dispatching to Gemini AI for deep analysis (Async)...")
+    incident_queue.put({
+        'command': command,
+        'matched_keywords': matched_keywords,
+        'process_info': process_info,
+        'is_critical': is_critical,
+        'snapshot_id': snapshot_id
+    })
     
     print(f"{'='*80}\n")
 
@@ -316,7 +303,7 @@ if __name__ == "__main__":
         monitor.stop_monitoring()
         incident_queue.put(None)
         worker_thread.join(timeout=5)
-        print("\n👋 ShadowNet v4.0 shutdown complete\n")
+        print("\n👋 ShadowNet v4.1 shutdown complete\n")
     except Exception as e:
         print(f"\n❌ Fatal Error: {e}")
         sys.exit(1)
