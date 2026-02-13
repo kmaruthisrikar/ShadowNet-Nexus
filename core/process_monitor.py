@@ -110,12 +110,16 @@ class WindowsProcessMonitor(BaseProcessMonitor):
         pythoncom.CoInitialize()
         try:
             w = wmi.WMI()
-            # Raw WQL query for NEAR-INSTANT detection (100ms polling instead of default 2s)
             query = "SELECT * FROM __InstanceCreationEvent WITHIN 0.1 WHERE TargetInstance ISA 'Win32_Process'"
             watcher = w.watch_for(raw_wql=query)
             
+            last_heartbeat = time.time()
             while self.monitoring:
                 try:
+                    if time.time() - last_heartbeat > 5:
+                        print(" [WMI-ALIVE] ", end="", flush=True)
+                        last_heartbeat = time.time()
+                        
                     event = watcher(timeout_ms=500)
                     if event:
                         new_process = event.TargetInstance

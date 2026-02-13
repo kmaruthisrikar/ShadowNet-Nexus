@@ -131,7 +131,7 @@ def log_worker():
             try:
                 md_report = incident_reporter.generate_incident_report(incident_data)
             except Exception as e:
-                pass
+                print(f"   [WARN] Failed to generate markdown report: {e}")
 
             # 3. Direct SIEM Transmission
             try:
@@ -180,11 +180,13 @@ def on_suspicious_command(command: str, process_info: dict):
     cmd_key = f"{process_info.get('name')}:{command}"
     now = time.time()
     
-    # Visual Heartbeat for EVERY process detection (High-Speed WMI)
-    sys.stdout.write("[·]") 
-    sys.stdout.flush()
+    proc_name = process_info.get('name', 'Unknown')
+    
+    # � DEEP DEBUG: Log EVERY spawn to confirm monitor is alive
+    print(f" [SPAWN: {proc_name}] ", end="", flush=True)
 
-    if cmd_key in recent_commands and (now - recent_commands[cmd_key]) < 5:
+    if cmd_key in recent_commands and (now - recent_commands[cmd_key]) < 2:
+        print("(dup)", end="", flush=True)
         detections += 1
         return
     
@@ -195,12 +197,16 @@ def on_suspicious_command(command: str, process_info: dict):
     
     # Aggressive Forensic Check (Derived directly from config.yaml)
     # This treats every keyword in the config as a critical binary name for instant matching
-    clean_proc = proc_name.replace('.exe', '').lower()
+    if isinstance(keywords, str): keywords = [keywords]
+    
+    clean_proc = proc_name.lower().replace('.exe', '')
     is_forensic_tool = any(kw.lower() in clean_proc for kw in keywords) or \
                        any(kw.lower() in command.lower() for kw in keywords)
     
     if not matched_keywords and not is_forensic_tool:
         return 
+    
+    print(f"\n[DEBUG] MATCH FOUND! Keywords: {matched_keywords}, Forensic: {is_forensic_tool}")
         
     # Whitelist Self-Monitoring (Only ignore EXACT evidence collection signatures)
     # This prevents the system from ignoring manual 'wevtutil' commands
