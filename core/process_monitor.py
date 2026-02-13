@@ -110,18 +110,26 @@ class WindowsProcessMonitor(BaseProcessMonitor):
         pythoncom.CoInitialize()
         try:
             w = wmi.WMI()
-            watcher = w.Win32_Process.watch_for("creation")
+            # Raw WQL query for NEAR-INSTANT detection (100ms polling instead of default 2s)
+            query = "SELECT * FROM __InstanceCreationEvent WITHIN 0.1 WHERE TargetInstance ISA 'Win32_Process'"
+            watcher = w.watch_for(raw_wql=query)
+            
             while self.monitoring:
                 try:
-                    new_process = watcher(timeout_ms=1000)
-                    if new_process:
+                    event = watcher(timeout_ms=500)
+                    if event:
+                        new_process = event.TargetInstance
                         self.processes_detected += 1
                         
                         pid = new_process.ProcessId
                         name = new_process.Name
-                        cmd = new_process.CommandLine or new_process.ExecutablePath or name
+                        # Try to get CommandLine safely - some processes die too fast
+                        try:
+                            cmd = new_process.CommandLine or new_process.ExecutablePath or name
+                        except:
+                            cmd = name # Fallback to exe name
                         
-                        # Forensic Check: Even if CommandLine is None, if the EXE is wevtutil, it's a match
+                        # Forensic Tool Check (Binary Name + Cmdline)
                         is_suspicious_exe = any(kw.lower() in name.lower() for kw in self.suspicious_keywords)
                         
                         if self._is_suspicious(cmd) or is_suspicious_exe:
@@ -143,7 +151,7 @@ class WindowsProcessMonitor(BaseProcessMonitor):
                             self._handle_suspicious_command(cmd, p_info, "WMI")
                 except wmi.x_wmi_timed_out:
                     continue
-                except Exception as e:
+                except Exception:
                     pass 
         except Exception as e:
             print(f"⚠️ WMI Monitor Error: {e}")

@@ -1,5 +1,5 @@
 """
-SHADOWNET NEXUS - COMPLETE REAL-TIME SYSTEM (v4.1)
+SHADOWNET NEXUS - COMPLETE REAL-TIME SYSTEM (v4.3)
 Integrates all core modules: SIEM, Alerts, Behavior Analysis, and Advanced Reporting.
 OPTIMIZED: Background processing and deduplication for high-volume attacks.
 """
@@ -180,9 +180,8 @@ def on_suspicious_command(command: str, process_info: dict):
     cmd_key = f"{process_info.get('name')}:{command}"
     now = time.time()
     
-    # Visual Heartbeat for EVERY process detection (WMI or Polling)
-    # This proves the monitor is "hearing" the system
-    sys.stdout.write("·") 
+    # Visual Heartbeat for EVERY process detection (High-Speed WMI)
+    sys.stdout.write("[·]") 
     sys.stdout.flush()
 
     if cmd_key in recent_commands and (now - recent_commands[cmd_key]) < 5:
@@ -194,9 +193,12 @@ def on_suspicious_command(command: str, process_info: dict):
     matched_keywords = [k for k in keywords if k.lower() in command.lower()]
     proc_name = process_info.get('name', '').lower()
     
-    # Highly Aggressive Forensic Tool Check
-    forensic_binaries = ['wevtutil', 'vssadmin', 'cipher', 'bcdedit', 'sdelete', 'mimikatz', 'reg']
-    is_forensic_tool = any(tool in proc_name for tool in forensic_binaries) or \
+    # Highly Aggressive Forensic Tool Check (Extension-Agnostic)
+    forensic_binaries = ['wevtutil', 'vssadmin', 'cipher', 'bcdedit', 'sdelete', 'mimikatz', 'reg', 'powershell']
+    
+    # Check both the process name and raw command line for matches
+    clean_proc = proc_name.replace('.exe', '').lower()
+    is_forensic_tool = any(tool in clean_proc for tool in forensic_binaries) or \
                        any(tool in command.lower() for tool in forensic_binaries)
     
     if not matched_keywords and not is_forensic_tool:
