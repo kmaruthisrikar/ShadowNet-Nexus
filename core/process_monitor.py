@@ -214,44 +214,39 @@ class WindowsProcessMonitor(BaseProcessMonitor):
             print("   [INFO] WMI not available, relying on polling fallback")
 
     def _polling_loop(self):
-        seen_pids = set()
+        seen_pids = set(p.info['pid'] for p in psutil.process_iter(['pid']))
         print("   [POLLING] Ultra-fast differential polling active (10ms interval)")
         while self.monitoring:
             try:
-                # FIXED: Proper differential tracking for polling
-                current_pids = set(p.info['pid'] for p in psutil.process_iter(['pid']))
+                # 1. Fetch current PIDs once (extremely fast)
+                current_pids = set(psutil.pids())
                 new_pids = current_pids - seen_pids
                 
-                # Check for processes that vanished to clean up seen_pids
+                # 2. Update baseline for next loop
                 seen_pids = current_pids
 
-                # Only examine new processes or all if requested
-                for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'username']):
+                # 3. Only inspect new PIDs directly (avoids full process-list iteration)
+                for pid in new_pids:
                     try:
-                        pid = proc.info['pid']
-                        if pid not in new_pids:
-                            continue
-                            
-                        name = proc.info.get('name', '')
-                        cmdline = proc.info.get('cmdline')
-                        full_cmd = " ".join(cmdline) if cmdline else name
+                        proc = psutil.Process(pid)
+                        with proc.oneshot():
+                            name = proc.name()
+                            cmdline = proc.cmdline()
+                            full_cmd = " ".join(cmdline) if cmdline else name
+                            username = proc.username()
+                            parent_pid = proc.ppid()
                         
                         # Detect by Command Line OR by Binary Name (Fast-kill fallback)
                         is_suspicious_exe = any(kw.lower() in name.lower() for kw in self.suspicious_keywords)
                         is_suspicious_cmd = self._is_suspicious(full_cmd)
-                        
-                        # Debug: Show when we find a match
-                        if is_suspicious_exe or is_suspicious_cmd:
-                            print(f"\n[MATCH!] {name} (PID: {pid}) - Exe:{is_suspicious_exe}, Cmd:{is_suspicious_cmd}")
-                            print(f"[MATCH!] Full command: {full_cmd[:100]}...")
                         
                         if is_suspicious_cmd or is_suspicious_exe:
                             self._handle_suspicious_command(full_cmd, {
                                 'pid': pid,
                                 'name': name,
                                 'cmdline': cmdline or [name],
-                                'username': proc.info.get('username', 'Unknown'),
-                                'parent_pid': proc.ppid() if hasattr(proc, 'ppid') else 0
+                                'username': username,
+                                'parent_pid': parent_pid
                             }, "Polling")
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         continue
